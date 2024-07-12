@@ -1,0 +1,6 @@
+asyncio
+discord.py
+yt-dlp
+PyNaCl
+python-dotenv
+Flask
