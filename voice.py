@@ -4,7 +4,7 @@ from flask import Flask
 import yt_dlp as youtube_dl
 import asyncio
 from random import randint
-from utils import TOKEN, YT_LINK
+from utils import TOKEN, get_random_song
 from threading import Thread
 
 
@@ -53,7 +53,8 @@ async def play(ctx):
     }
 
     with youtube_dl.YoutubeDL(ydl_opts) as ydl:
-        info = ydl.extract_info(YT_LINK[randint(0, 1)], download=False)
+        YT_LINK = get_random_song()
+        info = ydl.extract_info(YT_LINK, download=False)
         url2 = info['url']
 
     ffmpeg_options = {
@@ -87,7 +88,8 @@ async def loop(ctx):
     while True:
         if not voice_client.is_playing():
             with youtube_dl.YoutubeDL(ydl_opts) as ydl:
-                info = ydl.extract_info(YT_LINK[randint(0, 1)], download=False)
+                YT_LINK = get_random_song()
+                info = ydl.extract_info(YT_LINK, download=False)
                 url2 = info['url']
             ffmpeg_options = {
                 'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5',

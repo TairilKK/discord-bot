@@ -8,7 +8,7 @@ YT_LINK = ['https://www.youtube.com/watch?v=9woLRf94zCI',
 
 load_dotenv()
 TOKEN = os.getenv('TESTER_TOKEN')
-
+SONGS_DB_URL = os.getenv('SONGS_DB_URL')
 
 def load_env_variables():
     """
@@ -100,3 +100,16 @@ def weekly_words(cursor, number_of_words):
     """
     words = get_n_random_words(cursor, number_of_words)
     return insert_words(cursor, words, 'WEEKLY_WORDS')
+
+
+def get_random_song():
+    conn, c = db_open_connection(SONGS_DB_URL)
+    c.execute(f'SELECT SONG_ID, SONG_URL '
+              f'FROM loop_song '
+              f'ORDER BY RANDOM() '
+              f'LIMIT 1;')
+    song = c.fetchall()
+
+    db_close_connection(conn)
+
+    return song[0][1]

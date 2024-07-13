@@ -13,3 +13,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+    print(get_random_song())
