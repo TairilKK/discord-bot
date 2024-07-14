@@ -13,6 +13,7 @@ SONGS_DB_URL = os.getenv('SONGS_DB_URL')
 def load_env_variables():
     """
     Loads environment varibles
+
     :return: Varibles from .env file
     """
     load_dotenv()
@@ -24,6 +25,7 @@ def load_env_variables():
 def db_open_connection(path):
     """
     Creates connection with database.
+
     :param path: Path to database.
     :return: database connection and dataabse cursor.
     """
@@ -35,6 +37,7 @@ def db_open_connection(path):
 def db_close_connection(connection):
     """
     Close the database connection.
+
     :param connection: Database connection.
     :return: Closed connection.
     """
@@ -44,6 +47,7 @@ def db_close_connection(connection):
 def get_n_random_words(cursor, number_of_words):
     """
     Geting words from database.
+
     :param cursor: Database cursor.
     :param number_of_words: Number of random words.
     :return: Words tuple (word_id, word).
@@ -60,6 +64,7 @@ def get_n_random_words(cursor, number_of_words):
 def insert_words(cursor, words, table_name):
     """
     Inserts words to table.
+
     :param cursor: Database cursor.
     :param words: Words to insert.
     :param table_name: Table name.
@@ -83,6 +88,7 @@ def insert_words(cursor, words, table_name):
 def daily_words(cursor, number_of_words):
     """
     Function get words and inserts to daily_word table.
+
     :param cursor: Database cursor.
     :param number_of_words: Number of random words.
     :return: Words tuple (word_id, word).
@@ -94,6 +100,7 @@ def daily_words(cursor, number_of_words):
 def weekly_words(cursor, number_of_words):
     """
     Function get words and inserts to daily_word table.
+
     :param cursor: Database cursor.
     :param number_of_words: Number of random words.
     :return: Words tuple (word_id, word).
@@ -111,5 +118,26 @@ def get_random_song():
     song = c.fetchall()
 
     db_close_connection(conn)
-
     return song[0][1]
+
+
+def insert_song(url: str):
+    if not url.startswith('https://www.youtube.com/watch?v=') or len(url) != len('https://www.youtube.com/watch?v=8QTeQiyXb2E'):
+        return 'Incorrect input'
+    
+    conn, c = db_open_connection(SONGS_DB_URL)
+    
+    try:
+        c.execute('INSERT INTO loop_song(song_url) VALUES (?);', (url,))
+        conn.commit()
+        response = url
+    except sqlite3.IntegrityError:
+        response = 'Must be unique'
+    finally:
+        db_close_connection(conn)
+
+    return response
+
+    
+
+    
