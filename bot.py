@@ -25,4 +25,3 @@ def setup():
   return bot, t
 
 
-

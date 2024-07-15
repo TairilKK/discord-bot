@@ -1,139 +1,156 @@
 import os
 import sqlite3
+
 from datetime import datetime
 from dotenv import load_dotenv
+from typing import Tuple
 
 load_dotenv()
 TOKEN = os.getenv('TESTER_TOKEN')
 SONGS_DB_URL = os.getenv('SONGS_DB_URL')
 
 def load_env_variables():
-    """
-    Loads environment varibles
+  """
+  Loads environment varibles
 
-    :return: Varibles from .env file
-    """
-    load_dotenv()
-    database_url = os.getenv('DATABASE_URL')
-    number_of_words = os.getenv('NUMBER_OF_WORDS')
-    return database_url, number_of_words
+  :return: Varibles from .env file
+  """
+  load_dotenv()
+  database_url = os.getenv('DATABASE_URL')
+  number_of_words = os.getenv('NUMBER_OF_WORDS')
+  return database_url, number_of_words
 
 
 def db_open_connection(path):
-    """
-    Creates connection with database.
+  """
+  Creates connection with database.
 
-    :param path: Path to database.
-    :return: database connection and dataabse cursor.
-    """
-    connection = sqlite3.connect(path)
-    cursor = connection.cursor()
-    return connection, cursor
+  :param path: Path to database.
+  :return: database connection and dataabse cursor.
+  """
+  connection = sqlite3.connect(path)
+  cursor = connection.cursor()
+  return connection, cursor
 
 
 def db_close_connection(connection):
-    """
-    Close the database connection.
+  """
+  Close the database connection.
 
-    :param connection: Database connection.
-    :return: Closed connection.
-    """
-    return connection.close()
+  :param connection: Database connection.
+  :return: Closed connection.
+  """
+  return connection.close()
 
 
 def get_n_random_words(cursor, number_of_words):
-    """
-    Geting words from database.
+  """
+  Geting words from database.
 
-    :param cursor: Database cursor.
-    :param number_of_words: Number of random words.
-    :return: Words tuple (word_id, word).
-    """
-    cursor.execute(f'SELECT WORD_ID, WORD '
-                   f'FROM words '
-                   f'WHERE USAGE = (SELECT MIN(USAGE) FROM words) '
-                   f'ORDER BY RANDOM() '
-                   f'LIMIT {number_of_words};')
+  :param cursor: Database cursor.
+  :param number_of_words: Number of random words.
+  :return: Words tuple (word_id, word).
+  """
+  cursor.execute(f'SELECT WORD_ID, WORD '
+                  f'FROM words '
+                  f'WHERE USAGE = (SELECT MIN(USAGE) FROM words) '
+                  f'ORDER BY RANDOM() '
+                  f'LIMIT {number_of_words};')
 
-    return cursor.fetchall()
+  return cursor.fetchall()
 
 
 def insert_words(cursor, words, table_name):
-    """
-    Inserts words to table.
+  """
+  Inserts words to table.
 
-    :param cursor: Database cursor.
-    :param words: Words to insert.
-    :param table_name: Table name.
-    :return: Words tuple (word_id, word).
-    """
-    today = datetime.now()
+  :param cursor: Database cursor.
+  :param words: Words to insert.
+  :param table_name: Table name.
+  :return: Words tuple (word_id, word).
+  """
+  today = datetime.now()
 
-    year = today.year
-    month = today.month
-    day = today.day
+  year = today.year
+  month = today.month
+  day = today.day
 
-    query = f'INSERT INTO {table_name} (WORD_ID, DAY, MONTH, YEAR) VALUES (?, ?, ?, ?)'
-    data_to_insert = [(word_id, day, month, year) for word_id, word in words]
+  query = f'INSERT INTO {table_name} (WORD_ID, DAY, MONTH, YEAR) VALUES (?, ?, ?, ?)'
+  data_to_insert = [(word_id, day, month, year) for word_id, word in words]
 
-    cursor.executemany(query, data_to_insert)
-    cursor.connection.commit()
+  cursor.executemany(query, data_to_insert)
+  cursor.connection.commit()
 
-    return words
+  return words
 
 
 def daily_words(cursor, number_of_words):
-    """
-    Function get words and inserts to daily_word table.
+  """
+  Function get words and inserts to daily_word table.
 
-    :param cursor: Database cursor.
-    :param number_of_words: Number of random words.
-    :return: Words tuple (word_id, word).
-    """
-    words = get_n_random_words(cursor, number_of_words)
-    return insert_words(cursor, words, 'DAILY_WORDS')
+  :param cursor: Database cursor.
+  :param number_of_words: Number of random words.
+  :return: Words tuple (word_id, word).
+  """
+  words = get_n_random_words(cursor, number_of_words)
+  return insert_words(cursor, words, 'DAILY_WORDS')
 
 
 def weekly_words(cursor, number_of_words):
-    """
-    Function get words and inserts to daily_word table.
+  """
+  Function get words and inserts to daily_word table.
 
-    :param cursor: Database cursor.
-    :param number_of_words: Number of random words.
-    :return: Words tuple (word_id, word).
-    """
-    words = get_n_random_words(cursor, number_of_words)
-    return insert_words(cursor, words, 'WEEKLY_WORDS')
-
-
-def get_random_song():
-    conn, c = db_open_connection(SONGS_DB_URL)
-    c.execute(f'SELECT SONG_ID, SONG_URL '
-              f'FROM loop_song '
-              f'ORDER BY RANDOM() '
-              f'LIMIT 1;')
-    song = c.fetchall()
-
-    db_close_connection(conn)
-    return song[0][1]
+  :param cursor: Database cursor.
+  :param number_of_words: Number of random words.
+  :return: Words tuple (word_id, word).
+  """
+  words = get_n_random_words(cursor, number_of_words)
+  return insert_words(cursor, words, 'WEEKLY_WORDS')
 
 
-def insert_song(url: str):
-    if not url.startswith('https://www.youtube.com/watch?v=') or len(url) != len('https://www.youtube.com/watch?v=8QTeQiyXb2E'):
-        return 'Incorrect input'
-    
-    conn, c = db_open_connection(SONGS_DB_URL)
-    
-    try:
-        c.execute('INSERT INTO loop_song(song_url) VALUES (?);', (url,))
-        conn.commit()
-        response = url
-    except sqlite3.IntegrityError:
-        response = 'Must be unique'
-    finally:
-        db_close_connection(conn)
+def get_random_song() -> str:
+  """
+  Getting random song from database.
 
-    return response
+  Returns:
+      str: YouTube url
+  """   
+  conn, c = db_open_connection(SONGS_DB_URL)
+  c.execute(f'SELECT SONG_ID, SONG_URL '
+            f'FROM loop_song '
+            f'ORDER BY RANDOM() '
+            f'LIMIT 1;')
+  song = c.fetchall()
+
+  db_close_connection(conn)
+  return song[0][1]
+
+
+def insert_song(url: str) -> str:
+  """
+  Inserting new (unique) song to database.
+
+  Args:
+      url (str): YouTube url 
+
+  Returns:
+      str: response
+  """  
+  if not url.startswith('https://www.youtube.com/watch?v=') or len(url) != len('https://www.youtube.com/watch?v=8QTeQiyXb2E'):
+      return 'Incorrect input'
+  
+  conn, c = db_open_connection(SONGS_DB_URL)
+  
+  try:
+      c.execute('INSERT INTO loop_song(song_url) VALUES (?);', (url,))
+      conn.commit()
+      response = url
+  except sqlite3.IntegrityError:
+      response = 'Must be unique'
+  finally:
+      db_close_connection(conn)
+
+  return response
 
     
 
