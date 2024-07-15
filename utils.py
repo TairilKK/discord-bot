@@ -3,9 +3,6 @@ import sqlite3
 from datetime import datetime
 from dotenv import load_dotenv
 
-YT_LINK = ['https://www.youtube.com/watch?v=9woLRf94zCI',
-           'https://www.youtube.com/watch?v=C21k7Id2_Wc']
-
 load_dotenv()
 TOKEN = os.getenv('TESTER_TOKEN')
 SONGS_DB_URL = os.getenv('SONGS_DB_URL')
