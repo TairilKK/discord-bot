@@ -1,15 +1,13 @@
 import os
+import random
 import sqlite3
 
 from datetime import datetime
 from dotenv import load_dotenv
-from typing import Tuple
+from typing import List, Tuple
 
-load_dotenv()
-TOKEN = os.getenv('TESTER_TOKEN')
-SONGS_DB_URL = os.getenv('SONGS_DB_URL')
 
-def load_env_variables():
+def load_env_variables() -> Tuple[str, int, str, str]:
   """
   Loads environment varibles
 
@@ -18,10 +16,13 @@ def load_env_variables():
   load_dotenv()
   database_url = os.getenv('DATABASE_URL')
   number_of_words = os.getenv('NUMBER_OF_WORDS')
-  return database_url, number_of_words
+  TOKEN = os.getenv('TESTER_TOKEN')
+  SONGS_DB_URL = os.getenv('SONGS_DB_URL')
+
+  return database_url, number_of_words, TOKEN, SONGS_DB_URL
 
 
-def db_open_connection(path):
+def db_open_connection(path: str) -> Tuple[sqlite3.Connection, sqlite3.Cursor]:
   """
   Creates connection with database.
 
@@ -33,7 +34,7 @@ def db_open_connection(path):
   return connection, cursor
 
 
-def db_close_connection(connection):
+def db_close_connection(connection: sqlite3.Connection) -> sqlite3.Connection:
   """
   Close the database connection.
 
@@ -43,7 +44,7 @@ def db_close_connection(connection):
   return connection.close()
 
 
-def get_n_random_words(cursor, number_of_words):
+def get_n_random_words(cursor: sqlite3.Cursor, number_of_words: int) -> List[Tuple[int, str]]:
   """
   Geting words from database.
 
@@ -60,7 +61,7 @@ def get_n_random_words(cursor, number_of_words):
   return cursor.fetchall()
 
 
-def insert_words(cursor, words, table_name):
+def insert_words(cursor: sqlite3.Cursor, words: List[Tuple[int, str]], table_name: str):
   """
   Inserts words to table.
 
@@ -84,7 +85,7 @@ def insert_words(cursor, words, table_name):
   return words
 
 
-def daily_words(cursor, number_of_words):
+def daily_words(cursor: sqlite3.Cursor, number_of_words: int):
   """
   Function get words and inserts to daily_word table.
 
@@ -96,7 +97,7 @@ def daily_words(cursor, number_of_words):
   return insert_words(cursor, words, 'DAILY_WORDS')
 
 
-def weekly_words(cursor, number_of_words):
+def weekly_words(cursor: sqlite3.Cursor, number_of_words: int):
   """
   Function get words and inserts to daily_word table.
 
@@ -108,50 +109,9 @@ def weekly_words(cursor, number_of_words):
   return insert_words(cursor, words, 'WEEKLY_WORDS')
 
 
-def get_random_song() -> str:
-  """
-  Getting random song from database.
-
-  Returns:
-      str: YouTube url
-  """   
-  conn, c = db_open_connection(SONGS_DB_URL)
-  c.execute(f'SELECT SONG_ID, SONG_URL '
-            f'FROM loop_song '
-            f'ORDER BY RANDOM() '
-            f'LIMIT 1;')
-  song = c.fetchall()
-
-  db_close_connection(conn)
-  return song[0][1]
-
-
-def insert_song(url: str) -> str:
-  """
-  Inserting new (unique) song to database.
-
-  Args:
-      url (str): YouTube url 
-
-  Returns:
-      str: response
-  """  
-  if not url.startswith('https://www.youtube.com/watch?v=') or len(url) != len('https://www.youtube.com/watch?v=8QTeQiyXb2E'):
-      return 'Incorrect input'
-  
-  conn, c = db_open_connection(SONGS_DB_URL)
-  
-  try:
-      c.execute('INSERT INTO loop_song(song_url) VALUES (?);', (url,))
-      conn.commit()
-      response = url
-  except sqlite3.IntegrityError:
-      response = 'Must be unique'
-  finally:
-      db_close_connection(conn)
-
-  return response
-
-    
-
-    
+def get_random_song_from_directory(directory: str) -> str:
+    """Pobiera losową ścieżkę do pliku mp3 z podanego katalogu."""
+    files = [f for f in os.listdir(directory) if f.endswith('.mp3')]
+    if not files:
+        raise FileNotFoundError("No mp3 files found in the directory.")
+    return os.path.join(directory, random.choice(files))

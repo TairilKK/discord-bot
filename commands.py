@@ -1,19 +1,26 @@
 import asyncio
 import discord
 import logging
+import os
 
 import yt_dlp as youtube_dl
 
-from utils import get_random_song, insert_song
+from utils import get_random_song_from_directory
 from discord.ext.commands import Bot, Context
 
 logging.basicConfig(level=logging.INFO)
 
 def setup(bot: Bot) -> None:
+  """
+  Adding commands to bot.
+
+  Args:
+      bot (Bot): discord bot.
+  """  
   @bot.command()
   async def join(ctx: Context) -> None:
     if not ctx.message.author.voice:
-      await ctx.send("You are not connected to a voice channel")
+      await ctx.send("You are not connected to a voice channel.")
       return
     else:
       channel = ctx.message.author.voice.channel
@@ -30,44 +37,24 @@ def setup(bot: Bot) -> None:
     guild = ctx.guild
     voice_client = guild.voice_client
 
-    ydl_opts = {
-      'format': 'bestaudio/best',
-      'postprocessors': [{
-        'key': 'FFmpegExtractAudio',
-        'preferredcodec': 'mp3',
-        'preferredquality': '192',
-      }],
-      'noplaylist': True,
-    }
+    if voice_client is None:
+        if ctx.author.voice:
+            channel = ctx.author.voice.channel
+            voice_client = await channel.connect()
+        else:
+            await ctx.send("You are not connected to a voice channel.")
+            return
+
+    SONGS_DIRECTORY = 'songs'  # Zmień na rzeczywistą ścieżkę do katalogu z plikami mp3
 
     try:
-      while True:
-        if not voice_client.is_playing():
-          YT_LINK = get_random_song()
-          url2 = await extract_info_async(YT_LINK, ydl_opts)
-          ffmpeg_options = {
-              'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5',
-              'options': '-vn -ar 48000 -b:a 192k'
-          }
-          voice_client.play(discord.FFmpegPCMAudio(executable="ffmpeg", source=url2, **ffmpeg_options))
-        await asyncio.sleep(1)
+        while True:
+            if not voice_client.is_playing():
+                mp3_file = get_random_song_from_directory(SONGS_DIRECTORY)
+                voice_client.play(discord.FFmpegPCMAudio(executable="ffmpeg", source=mp3_file))
+            await asyncio.sleep(1)
     except Exception as e:
-      logging.error(f'Error in loop command: {e}')
-      await ctx.send("An error occurred in the loop.")
-
-
-  async def extract_info_async(link: str, ydl_opts):
-    loop = asyncio.get_event_loop()
-    with youtube_dl.YoutubeDL(ydl_opts) as ydl:
-      info = await loop.run_in_executor(None, lambda: ydl.extract_info(link, download=False))
-      return info['url']
-
-  @bot.command()
-  async def add_song(ctx: Context, youtube_url: str) -> None:
-    res = insert_song(url=youtube_url)
-    if res == 'Incorrect input':
-      await ctx.send('Failed to add the song.')
-    elif res == 'Must be unique':
-      await ctx.send('Song is already on the list.')
-    else:
-      await ctx.send(f'Song added: {youtube_url}')
+        logging.error(f'Error in loop command: {e}')
+        await ctx.send("An error occurred in the loop.")
+    finally:
+        await voice_client.disconnect()
